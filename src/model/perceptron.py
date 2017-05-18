@@ -5,6 +5,7 @@ import logging
 
 import numpy as np
 
+from sklearn.metrics import accuracy_score
 from util.activation_functions import Activation
 from model.classifier import Classifier
 
@@ -48,6 +49,13 @@ class Perceptron(Classifier):
         # around 0 and0.1
         self.weight = np.random.rand(self.trainingSet.input.shape[1])/100
 
+        #add bias
+        np.insert(self.weight, 0, np.random.rand()/10)
+
+        np.insert(self.trainingSet.input, 0, 1, axis=1)
+        np.insert(self.validationSet.input, 0, 1, axis=1)
+        np.insert(self.testSet.input, 0, 1, axis=1)
+
     def train(self, verbose=True):
         """Train the perceptron with the perceptron learning algorithm.
 
@@ -58,7 +66,18 @@ class Perceptron(Classifier):
         """
         
         # Write your code to train the perceptron here
-        pass
+        for epoch in range(self.epochs):
+            if verbose:
+                print("Training epoch {0}/{1}").format(epoch+1, self.epochs)
+
+            for xi, label in zip(self.trainingSet.input, self.trainingSet.label):
+                error = label - self.classify(xi)
+                self.updateWeights(xi, error)
+
+            if verbose:
+                accuracy = accuracy_score(self.validationSet.label, self.evaluate(self.validationSet))
+                print("Accuracy on validation: {0:.2f}%").format(accuracy*100)
+                print("------------------------------")
 
     def classify(self, testInstance):
         """Classify a single instance.
@@ -73,7 +92,7 @@ class Perceptron(Classifier):
             True if the testInstance is recognized as a 7, False otherwise.
         """
         # Write your code to do the classification on an input image
-        pass
+        return self.fire(testInstance)
 
     def evaluate(self, test=None):
         """Evaluate a whole dataset.
@@ -96,7 +115,7 @@ class Perceptron(Classifier):
 
     def updateWeights(self, input, error):
         # Write your code to update the weights of the perceptron here
-        pass
+        self.weight += self.learningRate * input * error
          
     def fire(self, input):
         """Fire the output of the perceptron corresponding to the input """
