@@ -5,7 +5,6 @@ import logging
 
 import numpy as np
 
-from sklearn.metrics import accuracy_score
 from util.activation_functions import Activation
 from model.classifier import Classifier
 
@@ -35,8 +34,7 @@ class Perceptron(Classifier):
     testSet : list
     weight : list
     """
-    def __init__(self, train, valid, test, 
-                                    learningRate=0.01, epochs=50):
+    def __init__(self, train, valid, test, learningRate=0.01, epochs=50):
 
         self.learningRate = learningRate
         self.epochs = epochs
@@ -49,13 +47,6 @@ class Perceptron(Classifier):
         # around 0 and0.1
         self.weight = np.random.rand(self.trainingSet.input.shape[1])/100
 
-        #add bias
-        np.insert(self.weight, 0, np.random.rand()/10)
-
-        np.insert(self.trainingSet.input, 0, 1, axis=1)
-        np.insert(self.validationSet.input, 0, 1, axis=1)
-        np.insert(self.testSet.input, 0, 1, axis=1)
-
     def train(self, verbose=True):
         """Train the perceptron with the perceptron learning algorithm.
 
@@ -64,20 +55,33 @@ class Perceptron(Classifier):
         verbose : boolean
             Print logging messages with validation accuracy if verbose is True.
         """
-        
-        # Write your code to train the perceptron here
-        for epoch in range(self.epochs):
-            if verbose:
-                print("Training epoch {0}/{1}").format(epoch+1, self.epochs)
 
-            for xi, label in zip(self.trainingSet.input, self.trainingSet.label):
-                error = label - self.classify(xi)
-                self.updateWeights(xi, error)
+        # Try to use the abstract way of the framework
+        from util.loss_functions import DifferentError
+        loss = DifferentError()
 
+        learned = False
+        iteration = 0
+
+        # Train for some epochs if the error is not 0
+        while not learned:
+            totalError = 0
+            for input, label in zip(self.trainingSet.input,
+                                    self.trainingSet.label):
+                output = self.fire(input)
+                if output != label:
+                    error = loss.calculateError(label, output)
+                    self.updateWeights(input, error)
+                    totalError += error
+
+            iteration += 1
+            
             if verbose:
-                accuracy = accuracy_score(self.validationSet.label, self.evaluate(self.validationSet))
-                print("Accuracy on validation: {0:.2f}%").format(accuracy*100)
-                print("------------------------------")
+                logging.info("Epoch: %i; Error: %i", iteration, -totalError)
+            
+            if totalError == 0 or iteration >= self.epochs:
+                # stop criteria is reached
+                learned = True
 
     def classify(self, testInstance):
         """Classify a single instance.
@@ -91,7 +95,6 @@ class Perceptron(Classifier):
         bool :
             True if the testInstance is recognized as a 7, False otherwise.
         """
-        # Write your code to do the classification on an input image
         return self.fire(testInstance)
 
     def evaluate(self, test=None):
@@ -114,9 +117,8 @@ class Perceptron(Classifier):
         return list(map(self.classify, test))
 
     def updateWeights(self, input, error):
-        # Write your code to update the weights of the perceptron here
-        self.weight += self.learningRate * input * error
-         
+        self.weight += self.learningRate*error*input
+
     def fire(self, input):
         """Fire the output of the perceptron corresponding to the input """
         return Activation.sign(np.dot(np.array(input), self.weight))
